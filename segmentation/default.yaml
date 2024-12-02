@@ -1,0 +1,3 @@
+MODELS:
+  MODEL_TYPE: 'vit_h'
+  CHECKPOINT_PATH: '/home/aurora/models/sam_vit_h_4b8939.pth'
