@@ -7,39 +7,24 @@ from os.path import expanduser
 
 import os
 
-# https://python.langchain.com/v0.2/docs/integrations/chat/llama2_chat/
+from .llm_interface import LLMInterface
+# from .. import utils
 
-# 加载模型
-# llama-2-7b-chat.Q4_K_M.gguf
-#     https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/blob/main/llama-2-7b-chat.Q4_K_M.gguf
-#         https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf
-# llama-2-13b-chat.Q4_K_M.gguf
+# https://python.langchain.com/v0.2/docs/integrations/chat/llama2_chat/
 
 # pip install llama-cpp-python
 
-class LlamaCppExecutor():
+class LlamaCppExecutor(LLMInterface):
     def __init__(self, **config):
-        self.cache_dir = config.get("cache_dir", None)
-        if not self.cache_dir:
-            base_dir = config.get("base_dir", "/home/aurora")
-            if base_dir:
-                os.path.join(base_dir,"models","llama")
-            else :
-                print(f"cache_dir:{self.cache_dir} or base_dir: {base_dir} is not corrected setting")
+        self.cache_dir = self.get_cache_dir(config)
                 
         self.device = config.get("device", "cpu")
-        self.model_name = config.get("model_name", "llama-2-7b-chat.Q4_K_M.gguf")
         
         # Callbacks support token-wise streaming
         callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
 
-#         MODEL_DIR = "/home/aurora/models/llama"
-#         model_name = "llama-2-7b-chat.Q4_K_M.gguf"
-        model_path = os.path.join(self.cache_dir,self.model_name)
-        model_path = expanduser(model_path)
-
-        model_kwargs = {
-            "model_path": model_path,
+        # model 
+        model_kwargs_default = {
             'temperature': 0.75,
             'max_tokens': 4000, 
             "n_ctx":4096,
@@ -50,9 +35,13 @@ class LlamaCppExecutor():
             "verbose": True,  # Verbose is required to pass to the callback manager
             "callback_manager": callback_manager,            
         }
+
+        model_kwargs = config.get("model_kwargs", {})
+        model_name = model_kwargs.get("model_name", "llama-2-7b-chat.Q4_K_M.gguf")
+        model_path = expanduser(os.path.join(self.cache_dir, model_name))
+        model_kwargs["model_path"] = model_path
         
-        if config.get("model_kwargs", None):
-            model_kwargs.update(config.get("model_kwargs"))
+        model_kwargs_default.update(model_kwargs)
             
         # Make sure the model path is correct for your system!
         self.llm = LlamaCpp(
@@ -66,7 +55,7 @@ class LlamaCppExecutor():
             # streaming=True,
             # verbose=True,  # Verbose is required to pass to the callback manager
             # callback_manager=callback_manager,
-            ** model_kwargs
+            **model_kwargs_default
         )
         
         self.llm_chat = Llama2Chat(llm=self.llm)

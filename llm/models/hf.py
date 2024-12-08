@@ -10,6 +10,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings, HuggingFaceIns
 import torch
 import os 
 
+from .llm_interface import LLMInterface
 # llm_dir = os.path.dirname(os.path.abspath(__file__))
 # chingmanlib_dir = os.path.dirname(llm_dir)
 # project_dir = os.path.dirname(chingmanlib_dir)
@@ -23,23 +24,23 @@ import os
 
 
 
-class LLMHFxecutor():
-
+class LLMHFxecutor(LLMInterface):
     
     def __init__(self, **config):        
                 
         self.device = config.get("device", LLMHFxecutor.get_device())
         
-        if config.get("cache_dir", None):
-            self.cache_dir = config.get("cache_dir")
-        else:
-            self.cache_dir = LLMHFxecutor.get_cache_dir()
+        self.cache_dir = LLMHFxecutor.get_cache_dir(**config)
+
+        model_kwargs = config.get("model_kwargs", {})
+        # NousResearch/Llama-2-7b-chat-hf, NousResearch/Llama-2-7b-hf
+        model_name = model_kwargs.get("model_name", "NousResearch/Llama-2-7b-chat-hf")        
 
         # AutoTokenizer 是 Hugging Face 中的自动化工具，用于根据指定的模型名称或路径自动加载适合该模型的分词器（Tokenizer）。
         # 分词器的作用是将文本输入转换为模型能够理解的数字化表示形式（即 token 或 token ID）。
         # 不同的模型可能使用不同的分词方式，因此 AutoTokenizer 提供了统一的接口，自动选择正确的分词器。
         tokenizer_kwargs = {"cache_dir": self.cache_dir}
-        self.tokenizer = AutoTokenizer.from_pretrained("NousResearch/Llama-2-7b-chat-hf",**tokenizer_kwargs)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name,**tokenizer_kwargs)
 
         # AutoModelForCausalLM 是用于加载因果语言建模（Causal Language Modeling）任务的预训练模型的自动化工具。
         # 因果语言模型是一种典型的生成模型，主要用于生成文本。
@@ -55,7 +56,8 @@ class LLMHFxecutor():
         if self.cache_dir:
             auto_model_kwargs['cache_dir']=self.cache_dir
             
-        self.model = AutoModelForCausalLM.from_pretrained("NousResearch/Llama-2-7b-chat-hf",
+        self.model = AutoModelForCausalLM.from_pretrained(model_name,
+                                                    # "NousResearch/Llama-2-7b-chat-hf",
                                                     # device_map='auto',
                                                     # torch_dtype=torch.float16,
                                                     # load_in_4bit=True,
@@ -101,19 +103,16 @@ class LLMHFxecutor():
         # 这在构建多步骤的自然语言处理应用时非常有用，尤其是当你需要将 Hugging Face 的模型作为其中一个步骤时。
 
         model_kwargs = {'temperature':0.7,'max_length': 256, 'top_k' :50}
-        if config.get("model_kwargs", None):
-            model_kwargs.update(config.get("model_kwargs"))
+        model_kwargs.update(config.get("model_kwargs",{}))
             
         self.llm = HuggingFacePipeline(
             pipeline = self.pipe, 
             model_kwargs = model_kwargs
         )
         
-        # output of HuggingFacePipeline is string instead of AIMessage
-        
-        update_embeddings = config.get("update_embeddings", False)
-        if update_embeddings:
-            self.embeddings = LLMHFxecutor.get_embeddings()
+        # output of HuggingFacePipeline is string rather than an AIMessage
+
+        self.embeddings = self.get_embeddings(**config)
              
     def run(self,prompt):
         return self.llm(prompt)
@@ -121,74 +120,74 @@ class LLMHFxecutor():
     def run_to_message(self,prompt):
         return AIMessage(self.run(prompt))
         
-    @classmethod
-    def get_embeddings(cls, **kwargs):
+    def get_embeddings(self, **kwargs):
         '''
         model_name:
             sentence-transformers/all-mpnet-base-v2
             hkunlp/instructor-large # don't use this
             all-MiniLM-L6-v2
         '''
-        model_name = kwargs.get("model_name","sentence-transformers/all-mpnet-base-v2")
-        model_kwargs = kwargs.get("model_kwargs",{'device': LLMHFxecutor.get_device()})
-        encode_kwargs = kwargs.get("encode_kwargs",{'normalize_embeddings': False})
+
+        if kwargs.get("force_update", None) and self.embeddings:
+            return self.embeddings
         
-        if kwargs.get("cache_dir", None):
-            cache_dir = kwargs.get("cache_dir")
-        else:
-            cache_dir = LLMHFxecutor.get_cache_dir()
+        default_param = {
+            "model_name": kwargs.get("model_name","sentence-transformers/all-mpnet-base-v2"),
+            "model_kwargs":{
+                'device': LLMHFxecutor.get_device()},
+            "encode_kwargs":{
+                'normalize_embeddings': False}
+        }
+
+        new_kwargs = {"cache_folder": self.cache_dir}
+        new_kwargs.update({k: v for k, v in default_param.items() if k not in new_kwargs})
             
-        embeddings = HuggingFaceEmbeddings(
-            model_name=model_name,
-            model_kwargs=model_kwargs,
-            encode_kwargs=encode_kwargs,
-            cache_folder=cache_dir)
+        embeddings = HuggingFaceEmbeddings(**new_kwargs)
         
         return embeddings        
             
-    @classmethod        
-    def get_instruct_embeddings(cls,model_name="hkunlp/instructor-large", **kwargs):
+    def get_instruct_embeddings(self,model_name="hkunlp/instructor-large", **kwargs):
+        default_param = {
+            "model_name": "hkunlp/instructor-large",
+            "model_kwargs":{
+                'device': LLMHFxecutor.get_device()},
+            # "encode_kwargs":{}
+        }
+        model_name = kwargs.get("model_name", default_param["model_name"])
+        model_kwargs = kwargs.get("model_kwargs", default_param["model_kwargs"])
+        # encode_kwargs = kwargs.get("encode_kwargs", default_param["encode_kwargs"])
+
         instruct_embeddings = HuggingFaceInstructEmbeddings(
             model_name=model_name,
-            model_kwargs={"device": LLMHFxecutor.get_device()},
-            cache_folder=cls.cache_dir)
+            model_kwargs=model_kwargs,
+            # encode_kwargs=encode_kwargs,
+            cache_folder=self.cache_dir)
         
         return instruct_embeddings
-        
-    @staticmethod
-    def get_cache_dir():
-        return os.getenv("MODEL_CACHE_DIR", None)
-    
-    @staticmethod
-    def get_cache_dir_from_kwargs(**config):
-        cache_dir = config.get("cache_dir", None)
-        if not cache_dir:
-            base_dir = config.get("base_dir", "/home/aurora")
-            if base_dir:
-                cache_dir = os.path.join(base_dir,"models","llama")
-            else :
-                print(f"cache_dir:{cache_dir} or base_dir: {base_dir} is not corrected setting")  
-                
-        return cache_dir
+            
+    def generate(self, prompt):        
+        with torch.autocast('cuda', dtype=torch.bfloat16):
+            inputs = self.tokenizer(prompt, return_tensors="pt").to('cuda')
+            outputs = self.model.generate(**inputs,
+                                     max_new_tokens=512,
+                                     eos_token_id=self.tokenizer.eos_token_id,
+                                     pad_token_id=self.tokenizer.eos_token_id,
+                                     )
+            final_outputs = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
 
-    @staticmethod        
-    def get_device():
-        try:    
-            import torch
+        return final_outputs#, outputs
 
-            if torch.cuda.is_available():
-                # device = torch.device("cuda")
-                # print("CUDA is available. Using GPU.") # pylint 
-                device = "cuda"
-            else:
-                device = torch.device("cpu")
-                # print("CUDA is not available. Using CPU.")
-                device = "cpu"
-
-            return device
-        except:
-            return "cpu"
-        
+    def test_generate(self, text):
+        '''
+        This function requires run and verify
+        '''
+        from chingmanlib.llm.prompts.utils import PromptUtils
+        prompt = PromptUtils.get_prompt(text)
+        output = self.generate(prompt)
+        final_outputs = PromptUtils.cut_off_text(final_outputs, '</s>')
+        final_outputs = PromptUtils.remove_substring(final_outputs, prompt)
+        return final_outputs
+            
 if __name__ == "__main__":
     config = {
         "base_dir" : "C:\\workings\\workspace",

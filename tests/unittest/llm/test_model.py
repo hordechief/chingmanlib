@@ -16,7 +16,7 @@ chingmanlib_dir = os.path.dirname(tests_dir)
 project_dir = os.path.dirname(chingmanlib_dir)
 sys.path.append(project_dir)
 
-from chingmanlib.llm.llm_hf import LLMHFxecutor
+from submodules.chingmanlib.llm.models.hf import LLMHFxecutor
 from chingmanlib.tests.settings import BASE_DIR, CACHE_DIR
 
 def get_device():
