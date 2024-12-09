@@ -17,25 +17,6 @@ from .models.hf import LLMHFxecutor
 from .models.llamacpp import LlamaCppExecutor
 from .models.llm_factory import LLMFactory
 
-# # from llm_app import LLMExecutorApp
-# def call_llm_app(cache_dir, device, llm_provider="hf", **kwargs):
-    
-#     model_kwargs = kwargs.get("model_kwargs", {'temperature':0})
-
-#     llm_executor = LLMFactory.create_llm_executor(
-#             llm_provider=llm_provider
-#     )
-   
-#     llm_exe_app = LLMExecutorApp(llm = llm_executor.llm)
-    
-#     return llm_exe_app
-
-
-#*******************************************
-#
-#             LLM Model
-#
-#******************************************
 
 from langchain.prompts import PromptTemplate
 from langchain_core.messages import AIMessage
