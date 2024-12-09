@@ -1,6 +1,12 @@
 # pip install -q faiss-gpu
 from langchain_community.vectorstores import Chroma
 from langchain_community.vectorstores import FAISS
+# from langchain.vectorstores import Chroma
+from langchain_chroma import Chroma
+from langchain_community.vectorstores import DocArrayInMemorySearch
+
+from langchain_openai import OpenAIEmbeddings
+
 import os
 
 class VectorStoreUtils():
@@ -15,9 +21,9 @@ class VectorStoreUtils():
             raise ValueError("Incorrect Vector Store Class")
 
         # create persist directory for chroma db
-        # self.persist_directory = os.getenv("CHATBOT_PERSIST_DIRECTORY", './persist_directory/')
         self.persist_directory = os.getenv("CHATBOT_PERSIST_DIRECTORY", None)
-        os.makedirs(self.persist_directory, exist_ok=True)
+        # self.persist_directory = os.getenv("CHATBOT_PERSIST_DIRECTORY", './persist_directory/')
+        # os.makedirs(self.persist_directory, exist_ok=True)
 
     def create_vectordb(self):
         # vectordb = Chroma(
@@ -62,16 +68,39 @@ class VectorStoreUtils():
         
         return self.retriever
     
-    def similarity_search(self, question, k=3):
-        docs = self.docsearch.similarity_search(question,k=k)
-        print(f"docs len is {len(docs)}, page_count of first doc is {docs[0].page_content}\n\n")
+    def test_similarity_search(self, question, k=3):
+        assert self.docsearch
+
+        docs = self.docsearch.similarity_search(question, k=k)
+        print(f"docs len is {len(docs)}, page_count of first doc is '{docs[0].page_content}'\n")
         for doc in docs:
-            print(doc.metadata)        
-        
+            print(f"doc metadata is {doc.metadata}") 
+            print(f"doc page content is: {doc.page_content}")          
         # self.docsearch.persist()
         
         return docs
 
+    @staticmethod
+    def test_retriever_get_relevant_docs(texts, question, embeddings):    
+
+        vectorstore = DocArrayInMemorySearch.from_texts(texts,embedding=embeddings)
+        retriever = vectorstore.as_retriever()
+        response = retriever.get_relevant_documents(question)
+        print(response)
+
 
 if __name__ == "__main__":
-    pass    
+
+    texts = [
+            "harrison worked at kensho", 
+            "bears like to eat honey"]
+    question = "where did harrison work?"
+    embeddings = OpenAIEmbeddings()
+
+    vsu = VectorStoreUtils(Chroma)
+    vsu.from_text(texts, embeddings)    
+    vsu.test_similarity_search(question, k=1)
+
+    VectorStoreUtils.test_retriever_get_relevant_docs(texts, question, embeddings)    
+
+    # python -m chingmanlib.llm.db.vector_store

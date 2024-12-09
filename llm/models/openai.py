@@ -8,6 +8,9 @@ import openai
 from openai import OpenAI
 from openai import AzureOpenAI
 
+# from langchain.embeddings import OpenAIEmbeddings
+# from langchain.embeddings.openai import OpenAIEmbeddings
+
 import langchain_openai
 from langchain_openai import AzureChatOpenAI
 from langchain_openai import OpenAI as LangchainOpenAI
