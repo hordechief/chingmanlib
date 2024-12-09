@@ -1,5 +1,5 @@
 # pip install -q faiss-gpu
-from langchain.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
 from langchain_community.vectorstores import FAISS
 import os
 
