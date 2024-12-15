@@ -67,6 +67,7 @@ class DataLoaderUtils():
         print(f"data page loaded, length is {len(data)}")
 
         if verbose:
+            print("page metadata \n--------------------------")
             for page in data:
                 print(page.metadata)
 

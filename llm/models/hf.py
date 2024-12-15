@@ -34,7 +34,8 @@ class LLMHFxecutor(LLMInterface):
 
         model_kwargs = config.get("model_kwargs", {})
         # NousResearch/Llama-2-7b-chat-hf, NousResearch/Llama-2-7b-hf
-        model_name = model_kwargs.get("model_name", "NousResearch/Llama-2-7b-chat-hf")        
+        model_name = model_kwargs.get("model_name", "NousResearch/Llama-2-7b-chat-hf")       
+        model_name = "THUDM/chatglm-6b" 
 
         # AutoTokenizer 是 Hugging Face 中的自动化工具，用于根据指定的模型名称或路径自动加载适合该模型的分词器（Tokenizer）。
         # 分词器的作用是将文本输入转换为模型能够理解的数字化表示形式（即 token 或 token ID）。
@@ -102,7 +103,9 @@ class LLMHFxecutor(LLMInterface):
         # 它将 Hugging Face 提供的模型封装成一个 LangChain 的管道组件，使得这些模型可以在更复杂的工作流中与其他 NLP 组件协同工作。
         # 这在构建多步骤的自然语言处理应用时非常有用，尤其是当你需要将 Hugging Face 的模型作为其中一个步骤时。
 
-        model_kwargs = {'temperature':0.7,'max_length': 256, 'top_k' :50}
+        model_kwargs = {
+            'skip_prompt':True,
+            'temperature':0.7,'max_length': 256, 'top_k' :50}
         model_kwargs.update(config.get("model_kwargs",{}))
             
         self.llm = HuggingFacePipeline(
@@ -189,11 +192,21 @@ class LLMHFxecutor(LLMInterface):
         return final_outputs
             
 if __name__ == "__main__":
+    # pip install python-dotenv
+    from dotenv import load_dotenv
+    import os
+    from pathlib import Path
+    env_path = Path(__file__).parent.parent.parent / "llm" / ".env"
+    print(env_path)
+
+    load_dotenv(dotenv_path=str(env_path), override=True)  # 加载 .env 文件    
     config = {
-        "base_dir" : "C:\\workings\\workspace",
-        "cache_dir": os.path.join("C:\\workings\\workspace","models","llama"),
+        "cache_dir": os.environ['CACHE_DIR'],
         "device": "cuda",
     }
         
     llm_hf = LLMHFxecutor(**config)
-    llm_hf.run("What is Python?")        
+    resp = llm_hf.run("What is Python?")        
+    print(resp)
+
+    # python -m chingmanlib.llm.models.hf

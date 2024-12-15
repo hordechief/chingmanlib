@@ -1,46 +1,35 @@
 from langchain.prompts import PromptTemplate
-from langchain_core.prompts import ChatPromptTemplate, format_document
 from langchain.schema.runnable import RunnablePassthrough
-from langchain_core.output_parsers import StrOutputParser
 from langchain.memory import ConversationBufferMemory
+from langchain_core.prompts import ChatPromptTemplate, format_document, MessagesPlaceholder
 from langchain_core.runnables import RunnableParallel,RunnableLambda, RunnablePassthrough
 from langchain_core.messages import get_buffer_string
+from langchain_core.messages import AIMessage
+from langchain_core.output_parsers import StrOutputParser
 
 from operator import itemgetter # 从上面的变量中提取
 
 from chingmanlib.llm.prompts.templates import CHATBOT_RAG_QA_TEMPLATE
+from .chain_interface import BaseChain
 
-class BasicChain():
-    def __init__(self, llm):
-        self.llm = llm
+# https://python.langchain.com.cn/docs/expression_language/cookbook/memory
+# LCEL
 
-    def check_input_variables(self,template,input_variables):
-        '''
-        check whether the input variable are in template
-        '''
-        for variable in input_variables:
-            _variable = "{" + variable + "}"
-            # print(_variable)
-            if not _variable in template:
-                print(f"variable {_variable} is not included in template")
-                return False
-        return True
-    
-    def create_prompt(self, template, default_template=None, input_variables=None):
-        if not template:
-            assert default_template
-            template = default_template["template"]
-            input_variables = default_template["input_variables"]
-            prompt = PromptTemplate(template=template, input_variables=input_variables)
-        else:
-            prompt = PromptTemplate.from_template(template) 
-            if input_variables and not self.check_input_variables(template,input_variables):
-                raise ValueError("input variable is not consistant")
-            prompt = PromptTemplate.from_template(template) 
-                        
-        return prompt
+class LCECChain(BaseChain):
         
+    def create_chain(self, 
+                template=None, 
+                input_variables=None, 
+                has_memory=False,
+                streaming=False,
+                verbose=False, 
+                **kwargs):
+        pass
+            
     def create_llm_chain(self, template=None):
+        '''
+        Basic chain
+        '''
         if not template:
             template = """Question: {question}
             Answer: Let's think step by step."""
@@ -51,6 +40,9 @@ class BasicChain():
         return self.llm_chain    
     
     def create_llm_rag_chain(self, rag_template=None, input_variables=None, retriever=None):
+        '''
+        basic RAG chain
+        '''
         if not retriever:
             retriever = self.retriever
 
@@ -69,13 +61,47 @@ class BasicChain():
                 
         return rag_chain    
     
+    def create_llm_conversation_QA_chain_simple(self):
+        '''
+        Basic QA chain
+        '''
+        prompt = ChatPromptTemplate.from_messages(
+                [
+                    ("system", "You are a helpful chatbot"),
+                    MessagesPlaceholder(variable_name="history"),
+                    ("human", "{input}"),
+                ]
+        )
+
+        memory = ConversationBufferMemory(return_messages=True)
+
+        print(memory.load_memory_variables({}))
+
+        self.conversational_qa_chain_simple = (
+            RunnablePassthrough.assign(
+                history=RunnableLambda(memory.load_memory_variables) | itemgetter("history")
+            )
+            | prompt
+            | self.llm
+        )
+
+    def run_llm_conversation_QA_chain_simple(self,inputs):
+        # call example
+        # inputs = {"input": "hi im bob"}
+        response = self.conversational_qa_chain_simple.invoke(inputs)
+
+        # by default, openai return AIMessage, llama return str
+        return response
+        
     def create_llm_conversationn_QA_chain(self,
                 question_prompt=None,
                 answer_prompt=None,
                 retriever=None,
                 has_memory=False):
         '''
-        language in template is not mandatory, just give an example to add additional paramter
+        This chain leverage 3 prompt (question prompt, answer prompt and document prompt) to compose the chain
+
+        Note: language in template is not mandatory, just give an example to add additional paramter
         '''
         print("create_llm_conversationn_QA_chain")
 
@@ -110,7 +136,7 @@ class BasicChain():
         CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(question_prompt)
         print(f"CONDENSE_QUESTION_PROMPT is : \n\n {CONDENSE_QUESTION_PROMPT}")
         
-        # answer prompt
+        # answer prompt - [ChatPromptTemplate]
         ANSWER_PROMPT = ChatPromptTemplate.from_template(answer_prompt)
         print(f"ANSWER_PROMPT is : \n\n {ANSWER_PROMPT}")
         
@@ -144,9 +170,9 @@ class BasicChain():
                 "context": itemgetter("standalone_question") | retriever | _combine_documents,
                 "question": lambda x: x["standalone_question"], # answer prompt里的question跟question prompt里是不一样的
                 # only RunnablePassthrough work for language
-                "language": RunnablePassthrough(),
-                # "language": lambda x: x["language"], # _input中提供的变量，否则这儿无法获取 ####
-                # "language": itemgetter("language")
+                # "language": RunnablePassthrough(), # OK
+                # "language": lambda x: x["language"], # KO, _input中提供的变量，否则这儿无法获取 ####
+                # "language": itemgetter("language") # KO
             }  
                                     
             self.conversational_qa_chain = _inputs | _context | ANSWER_PROMPT | self.llm 
@@ -172,9 +198,9 @@ class BasicChain():
                     "question": lambda x: x["question"],
                     "chat_history": lambda x: get_buffer_string(x["chat_history"]),
                     # ALL OK for language
-                    "language": RunnablePassthrough(), 
-                    # "language": itemgetter("language"), 
-                    # "language": lambda x: x["language"],
+                    # "language": RunnablePassthrough(),  # OK
+                    # "language": itemgetter("language"),  # OK
+                    # "language": lambda x: x["language"], # OK
                 }
                 | CONDENSE_QUESTION_PROMPT
                 | self.llm
@@ -194,7 +220,7 @@ class BasicChain():
                 "context": lambda x: _combine_documents(x["docs"]),
                 "question": itemgetter("question"),
                 # only RunnablePassthrough work for language
-                "language": RunnablePassthrough(),           
+                # "language": RunnablePassthrough(), # OK
                 # "language": itemgetter("language"), # KO
             }
 
@@ -209,11 +235,14 @@ class BasicChain():
                 
         return self.conversational_qa_chain    
     
-    def run(self, question):
-        from langchain_core.messages import AIMessage
-
+    def run(self, question, verbose=False):
+        '''
+        run inference to get the answer
+        currently, we need manually save the memory
+        '''
         inputs = {"question": question}
         result = self.conversational_qa_chain.invoke(inputs)
+        print(f"###############\nchain invokeresult is:s \n{result}")
         if isinstance(result["answer"], AIMessage):
             response = result["answer"].content
         else:
@@ -224,15 +253,46 @@ class BasicChain():
             # This will be improved in the future
             # For now you need to save it yourself
             self.memory.save_context(inputs, {"answer": response})
-            self.memory.load_memory_variables({})
+            varaibles = self.memory.load_memory_variables({})
+            if verbose: print(f"memory varaibles is :\n{varaibles}")
 
-        print(response)
+        if verbose: print(f"response is : \n{response}")        
 
+        return response
+    
+    def stream(self, question, verbose=False):
+        inputs = {"question": question}
+        response = self.conversational_qa_chain.stream(inputs)
+
+        if self.has_memory:
+            self.memory.save_context(inputs, {"answer": response})
+            varaibles = self.memory.load_memory_variables({})
+            if verbose: print(varaibles)
+
+        return response
+    
+    async def astream(self, question, verbose):
+        inputs = {"question": question}
+        response = self.conversational_qa_chain.astream(inputs)
+
+        if self.has_memory:
+            self.memory.save_context(inputs, {"answer": response})
+            varaibles = self.memory.load_memory_variables({})
+            if verbose: print(varaibles)
+
+        return response
+    
+    ############################################
+    #
+    #            TESTING CODE
+    #
+    ############################################
     def test_llm_chain(self):
         prompt_value = self.llm_chain.invoke({"question": "ice cream"})
         print(prompt_value)
 
     def test_llm_conversationn_QA_chain(self):
+        # response = self.run("What's the key component of agent system?")
         response = self.conversational_qa_chain.invoke(
             {
                 "question": "What's the key component of agent system?",
@@ -242,13 +302,10 @@ class BasicChain():
         )
         print(response)
 
-    def test_llm_conversationn_QA_chain_with_memory(self):
-        response = self.run("What's the key component of agent system?")
-        print(response)  
-
-def prepare_llm_conversation_QA_chain(llm_executor):
-    
-    embeddings = llm_executor.get_embeddings()
+def prepare_llm_conversation_QA_chain(embeddings):    
+    '''
+    data preparation for test
+    '''
 
     # Define template
     _template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.
@@ -293,27 +350,30 @@ def prepare_llm_conversation_QA_chain(llm_executor):
     
 if __name__ == "__main__":
     from chingmanlib.llm.models import create_llm
+    from dotenv import load_dotenv
     import os
+    from pathlib import Path
+    env_path = Path(__file__).parent.parent.parent / "llm" / ".env"
+    load_dotenv(dotenv_path=str(env_path), override=True)  # 加载 .env 文件    
 
-    BASE_DIR = os.getenv("BASE_DIR", "/home/aurora")
-    cache_dir = os.path.join(BASE_DIR,"models","llama")
-
-    llm_executor = create_llm("hf",cache_dir)
+    llm_executor = create_llm("hf",os.environ["CACHE_DIR"])
 
     llm = llm_executor.llm
+    embeddings = llm_executor.get_embeddings()
 
-    llm_chain_executor = BasicChain(llm)
-    # llm_chain_executor.create_llm_chain()
-    # llm_chain_executor.test_llm_chain()
+    TEST_CATEGORIES = ['BASE', 'QA_CHAIN', 'QA_CHAIN_W_MEMORY']
 
-    ###################
-    _template, template, retriever = prepare_llm_conversation_QA_chain(llm_executor)
-    # llm_chain_executor.create_llm_conversationn_QA_chain(_template, template, retriever)
-    # llm_chain_executor.test_llm_conversationn_QA_chain()
+    if 'BASE' in TEST_CATEGORIES:
+        llm_chain_executor = LCECChain(llm)
+        llm_chain_executor.create_llm_chain()
+        llm_chain_executor.test_llm_chain()
 
-    llm_chain_executor.create_llm_conversationn_QA_chain(_template, template, retriever, has_memory=True)
+    _template, template, retriever = prepare_llm_conversation_QA_chain(embeddings)
+    if 'QA_CHAIN' in TEST_CATEGORIES:        
+        llm_chain_executor.create_llm_conversationn_QA_chain(_template, template, retriever)
+    elif 'QA_CHAIN_W_MEMORY' in TEST_CATEGORIES:
+        llm_chain_executor.create_llm_conversationn_QA_chain(_template, template, retriever, has_memory=True)
     llm_chain_executor.test_llm_conversationn_QA_chain()
-    llm_chain_executor.test_llm_conversationn_QA_chain_with_memory()
 
     # export PYTHONPATH=/home/aurora/repos/dl-ex/submodules:$PYTHONPATH
     # python -m submodules.chingmanlib.llm.chains.basic

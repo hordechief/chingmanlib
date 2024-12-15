@@ -42,19 +42,69 @@ Question: How to solve the issue of PCIe Adapter cannot be recognized? what's th
 # https://python.langchain.com.cn/docs/modules/model_io/prompts/prompt_templates
 
 CHATBOT_TEMPLATE = {
-    "template": """This is the Chatbot sytem ..."
+    "template": """
+This is the Chatbot sytem ..."
 Let's work this out in a step by step way to be sure we have the right answer.
 Question: {question}
 Answer: """, 
-    "input_variables":["Question"]
+    "input_variables":["question"]
+}
+
+CHATBOT_CN_TEMPLATE = {
+    "template": """
+这是一个聊天机器人系统……
+让我们一步一步地解决这个问题，以确保我们得到正确的答案。
+问题：{question}
+答案： """, 
+    "input_variables":["question"]
+}
+
+CHATBOT_HISTORY_TEMPLATE = {
+    "template": """"
+[INST] <<SYS>>
+You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. 
+Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. 
+Please ensure that your responses are socially unbiased and positive in nature.
+If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. 
+If you don't know the answer to a question, please don't share false information.
+You always only answer for the assistant then you stop, don't add greet and ask back question, read the chat history to get context.
+<</SYS>>
+
+# Chat History:
+{chat_history} 
+
+# Question: {question}
+
+# Answer: [/INST]
+""",
+    "input_variables":["chat_history", "question"]
+}
+
+CHATBOT_HISTORY_CN_TEMPLATE = {
+    "template": """
+[INST]<<SYS>>
+你是一个乐于助人的助手，你总是只为助手提供答案，然后停止，不要添加问候语或反问问题，阅读聊天记录以获取上下文信息。
+<</SYS>>
+
+# 聊天记录：
+{chat_history}
+
+# 问题：{question}
+
+# 回答[/INST]""",
+    "input_variables":["chat_history", "question"]
 }
 
 CHATBOT_CONVERSATION_TEMPLATE = {
-    "template": """The following is a friendly conversation between a human and an AI. The AI is talkative and provides lots of specific details from its context. If the AI does not know the answer to a question, it truthfully says it does not know.
+    "template": """
+The following is a friendly conversation between a human and an AI. The AI is talkative and provides lots of specific details from its context. 
+If the AI does not know the answer to a question, it truthfully says it does not know.
 
 Current conversation:
 {history}
+
 Human: {input}
+
 AI Assistant:""",
     "input_variables":["history", "input"]
 }
@@ -75,21 +125,21 @@ If you don't know the answer to a question, please don't share false information
 # Question: {question}
 
 # Answer: [/INST]
-
 """,
     "input_variables":["context", "question"]
 }
 
 CHATBOT_RAG_QA_TEMPLATE = {
     "template": """
-            You are an assistant for question-answering tasks. 
-            Use the following pieces of retrieved context to answer the question. 
-            If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
-            {context}
+You are an assistant for question-answering tasks. 
+Use the following pieces of retrieved context to answer the question. 
+If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
 
-            Question: {question}
+{context}
 
-            Answer:
-            """,
+Question: {question}
+
+Answer:
+""",
     "input_variables":["context", "question"]
 }
