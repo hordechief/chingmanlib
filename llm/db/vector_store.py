@@ -5,6 +5,8 @@ from langchain_community.vectorstores import FAISS
 from langchain_chroma import Chroma
 from langchain_community.vectorstores import DocArrayInMemorySearch
 
+from langchain_core.vectorstores import VectorStoreRetriever
+
 from langchain_openai import OpenAIEmbeddings
 
 import os
@@ -28,19 +30,21 @@ class VectorStoreUtils():
 
         print("Vector db initialized with type {class_type.__name__}")
 
-    def create_vectordb(self):
+    def create_retriever(self):
         # vectordb = Chroma(
         #     persist_directory=persist_directory,
         #     embedding_function=OpenAIEmbeddings()
         # )
+        # self.retriever = VectorStoreRetriever(vectorstore=FAISS(...))
+
         pass
             
-    def from_documents(self,texts, embeddings):
+    def from_documents(self,documents, embeddings):
         '''
         # 鸭子函数
         '''        
         self.docsearch = self.vectorstore.from_documents(
-            texts, 
+            documents, 
             embeddings,
             persist_directory = self.persist_directory
         )

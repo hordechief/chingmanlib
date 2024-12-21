@@ -1,4 +1,6 @@
 from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader, TextLoader, WebBaseLoader
+import os
+from pathlib import Path
 
 class DataLoaderUtils():
     def __init__(self):
@@ -72,3 +74,11 @@ class DataLoaderUtils():
                 print(page.metadata)
 
         return data
+    
+    @classmethod
+    def multiple_loader(cls, loaders):
+        documents = []
+        for loader in loaders:
+            documents.extend(loader.load())
+
+        return documents

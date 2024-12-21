@@ -9,7 +9,6 @@ from langchain_core.output_parsers import StrOutputParser
 
 from operator import itemgetter # 从上面的变量中提取
 
-from chingmanlib.llm.prompts.templates import CHATBOT_RAG_QA_TEMPLATE
 from .chain_interface import BaseChain
 
 # https://python.langchain.com.cn/docs/expression_language/cookbook/memory
@@ -48,7 +47,7 @@ class LCECChain(BaseChain):
 
         assert retriever
             
-        rag_prompt = self.create_prompt(rag_template, input_variables=input_variables, default_template=CHATBOT_RAG_QA_TEMPLATE)
+        rag_prompt = self.create_prompt(rag_template, input_variables=input_variables, default_template_name="CHATBOT_RAG_TEMPLATE_LLAMA")
 
         rag_chain = (
             {"context": retriever, "question": RunnablePassthrough()}
@@ -61,7 +60,7 @@ class LCECChain(BaseChain):
                 
         return rag_chain    
     
-    def create_llm_conversation_QA_chain_simple(self):
+    def create_llm_conversation_qa_chain(self):
         '''
         Basic QA chain
         '''
@@ -85,7 +84,7 @@ class LCECChain(BaseChain):
             | self.llm
         )
 
-    def run_llm_conversation_QA_chain_simple(self,inputs):
+    def run_llm_conversation_qa_chain(self,inputs):
         # call example
         # inputs = {"input": "hi im bob"}
         response = self.conversational_qa_chain_simple.invoke(inputs)
@@ -93,7 +92,7 @@ class LCECChain(BaseChain):
         # by default, openai return AIMessage, llama return str
         return response
         
-    def create_llm_conversationn_QA_chain(self,
+    def create_llm_conversationn_rag_qa_chain(self,
                 question_prompt=None,
                 answer_prompt=None,
                 retriever=None,
@@ -103,7 +102,7 @@ class LCECChain(BaseChain):
 
         Note: language in template is not mandatory, just give an example to add additional paramter
         '''
-        print("create_llm_conversationn_QA_chain")
+        print("create_llm_conversationn_rag_qa_chain")
 
         self.has_memory = has_memory
 
@@ -370,9 +369,9 @@ if __name__ == "__main__":
 
     _template, template, retriever = prepare_llm_conversation_QA_chain(embeddings)
     if 'QA_CHAIN' in TEST_CATEGORIES:        
-        llm_chain_executor.create_llm_conversationn_QA_chain(_template, template, retriever)
+        llm_chain_executor.create_llm_conversationn_rag_qa_chain(_template, template, retriever)
     elif 'QA_CHAIN_W_MEMORY' in TEST_CATEGORIES:
-        llm_chain_executor.create_llm_conversationn_QA_chain(_template, template, retriever, has_memory=True)
+        llm_chain_executor.create_llm_conversationn_rag_qa_chain(_template, template, retriever, has_memory=True)
     llm_chain_executor.test_llm_conversationn_QA_chain()
 
     # export PYTHONPATH=/home/aurora/repos/dl-ex/submodules:$PYTHONPATH
