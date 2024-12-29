@@ -1,8 +1,12 @@
 import abc
 import os
-from chingmanlib.llm.utils.operation import get_default_cache_dir
+from chingmanlib.llm.utils.operation import get_device, get_cache_dir
 
 class LLMInterface(metaclass=abc.ABCMeta):
+
+    def __init__(self, **config):
+        self.device = get_device()    
+        self.cache_dir = get_cache_dir(**config)
 
     @abc.abstractmethod
     def run(self, prompt: str) -> str:
@@ -13,37 +17,17 @@ class LLMInterface(metaclass=abc.ABCMeta):
         Returns:
         - str: the response from the model.
         """
-        raise NotImplementedError
+        raise NotImplementedError   
+
+class EmbeddingsInterface(metaclass=abc.ABCMeta):
+    def __init__(self, **config):
+        self.device = get_device()    
+        self.cache_dir = get_cache_dir(**config)
+
+    # @abc.abstractmethod
+    # def embed_query(text):
+    #     raise NotImplemented
     
-    @staticmethod        
-    def get_device():
-        try:    
-            import torch
-
-            if torch.cuda.is_available():
-                # device = torch.device("cuda")
-                # print("CUDA is available. Using GPU.") # pylint 
-                device = "cuda"
-            else:
-                device = torch.device("cpu")
-                # print("CUDA is not available. Using CPU.")
-                device = "cpu"
-
-            return device
-        except:
-            return "cpu"    
-        
-    @staticmethod
-    def get_cache_dir(**config):
-        if config.get("cache_dir", None):
-            return config.get("cache_dir")
-        else:
-            return os.getenv("MODEL_CACHE_DIR", get_default_cache_dir())        
-        
-    @staticmethod
-    def get_param(param, ENV_NAME, default_value, **config):
-        # print(config)
-        if config.get(param, None):
-            return config.get("cache_dir")
-        else:
-            return os.getenv(ENV_NAME, default_value)                
+    # @abc.abstractmethod
+    # def embed_documents(documents):
+    #     raise NotImplemented    

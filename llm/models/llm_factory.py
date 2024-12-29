@@ -4,11 +4,11 @@ from typing import Type
 from .hf import LLMHFxecutor
 from .llamacpp import LlamaCppExecutor
 from .openai import OpenAIExecutor
+from .ollama import LLMOllamaExecutor
 
 class LLMFactory:
     @staticmethod
     def create_llm_executor(llm_provider, **kwargs) -> Type[LLMInterface]:
-        # print(kwargs)
         if "hf" == llm_provider:
             llm_executor = LLMHFxecutor(
                 cache_dir=kwargs.get("cache_dir", None), 
@@ -23,6 +23,10 @@ class LLMFactory:
             )
         elif "openai" == llm_provider:
             llm_executor = OpenAIExecutor(
+                **kwargs
+            )            
+        elif "ollama" == llm_provider:
+            llm_executor = LLMOllamaExecutor(
                 **kwargs
             )            
         else:

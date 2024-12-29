@@ -19,6 +19,13 @@ class ChainInterface(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def run(self, question, verbose=False):
+        raise NotImplemented
+
+    @abc.abstractmethod
+    def stream(self, question, verbose=False):
+        raise NotImplemented
 
 class BaseChain(ChainInterface):
     def __init__(self, llm, retriever, *args, **kwargs):
@@ -47,7 +54,7 @@ class BaseChain(ChainInterface):
         if not template:
             assert default_template_name in LLM_TEMPLATES.keys()
             # Using PromptTemplate to initialize require parameter input_variables
-            template = default_template=LLM_TEMPLATES[default_template_name]["template"][LANGUAGE] 
+            template = LLM_TEMPLATES[default_template_name]["template"][LANGUAGE] 
             input_variables = LLM_TEMPLATES[default_template_name]["input_variables"]
             prompt = PromptTemplate(template=template, input_variables=input_variables)
         else:
@@ -58,8 +65,4 @@ class BaseChain(ChainInterface):
                         
         return prompt
     
-    def run(self, question, verbose=False):
-        raise NotImplemented
 
-    def steam(self, question, verbose=False):
-        raise NotImplemented

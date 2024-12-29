@@ -2,6 +2,8 @@ from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader, T
 import os
 from pathlib import Path
 
+from chingmanlib.llm.utils.log import LOG
+
 class DataLoaderUtils():
     def __init__(self):
         pass
@@ -66,12 +68,16 @@ class DataLoaderUtils():
 
         data = loader.load()
 
-        print(f"data page loaded, length is {len(data)}")
+        LOG.log(f"data loaded, page length is {len(data)}")
 
         if verbose:
-            print("page metadata \n--------------------------")
+            LOG.append("page metadata:")
+            files = []
             for page in data:
-                print(page.metadata)
+                # print(page.metadata)
+                if not page.metadata["source"] in files:
+                    files.append(page.metadata["source"])
+            print(files)
 
         return data
     

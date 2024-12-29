@@ -1,1 +1,3 @@
-
+langchain-ollama 
+langchain-openai
+langchain-huggingface

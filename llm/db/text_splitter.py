@@ -1,4 +1,5 @@
 from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter, TokenTextSplitter
+from chingmanlib.llm.utils.log import LOG
 
 class DocSplittingUtils():
     def __init__(self, **kwargs):
@@ -41,8 +42,8 @@ class DocSplittingUtils():
         texts = self.r_text_splitter.split_documents(data)        
         
         if verbose:
-            print(len(texts))
-            print(texts[0])
+            LOG.log(f"document splitted, length is {len(texts)}")
+            LOG.append(texts[0])
             
         return texts
                          

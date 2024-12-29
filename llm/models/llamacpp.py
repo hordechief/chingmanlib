@@ -7,10 +7,11 @@ from os.path import expanduser
 
 import os
 
-from .llm_interface import LLMInterface
+from .llm_interface import LLMInterface, EmbeddingsInterface
 # from .. import utils
 
 # https://python.langchain.com/v0.2/docs/integrations/chat/llama2_chat/
+# https://python.langchain.com/docs/integrations/text_embedding/llamacpp/
 
 # pip install llama-cpp-python
 
@@ -63,6 +64,14 @@ class LlamaCppExecutor(LLMInterface):
     def run(self,prompt):
         self.llm(prompt)
         
+# class LlamaCppEmbeddings(EmbeddingsInterface):
+#     # %pip install --upgrade --quiet  llama-cpp-python
+#     from langchain_community.embeddings import LlamaCppEmbeddings
+#     llama = LlamaCppEmbeddings(model_path="/path/to/model/ggml-model-q4_0.bin")
+#     text = "This is a test document."
+#     query_result = llama.embed_query(text)
+#     doc_result = llama.embed_documents([text])
+
 if __name__ == "__main__":
     config = {
         "base_dir" : "C:\\workings\\workspace",

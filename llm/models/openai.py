@@ -30,6 +30,7 @@ from dotenv import load_dotenv
 from getpass import getpass
 
 from .llm_interface import LLMInterface
+from chingmanlib.llm.utils.operation import get_param
 
 
 # import your OpenAI key -
@@ -58,7 +59,7 @@ class OpenAIExecutor(LLMInterface):
 
         model_kwargs = kwargs.get("model_kwargs", {})         
         model_kwargs.setdefault("api_key", os.environ["OPENAI_API_KEY"])  
-        self.model = self.get_param("model_name", "OPENAI_MODEL", "gpt-3.5-turbo", **kwargs)
+        self.model = get_param("model_name", "OPENAI_MODEL", "gpt-3.5-turbo", **kwargs)
         # new_items = {
         #     "model_name": "gpt-35-turbo",
         #     "api_key": os.environ["OPENAI_API_KEY"]

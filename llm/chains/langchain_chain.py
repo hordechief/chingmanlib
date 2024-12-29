@@ -42,10 +42,10 @@ class LLMChainUtilizer(BaseChain):
             else:
                 default_template_name="CHATBOT_CONVERSATION_TEMPLATE_LLAMA"
                             
-            template = kwargs.get("template", None)
-            input_variables = kwargs.get("input_variables", None)
-            
-            prompt = self.create_prompt(template, input_variables=input_variables, default_template_name=default_template_name)
+            prompt = self.create_prompt(
+                kwargs.get("template", None), 
+                input_variables=kwargs.get("input_variables", None), 
+                default_template_name=kwargs.get("default_template_name", default_template_name))
         
         # add memory
         chain_kwargs = {}
@@ -92,9 +92,10 @@ class ConversationChainUtilizer(BaseChain):
                 **kwargs):
 
         # create prompt
-        template = kwargs.get("template", None)
-        input_variables = kwargs.get("input_variables", None)        
-        PROMPT = prompt or self.create_prompt(template, input_variables=input_variables, default_template_name="CHATBOT_CONVERSATION_TEMPLATE")
+        PROMPT = prompt or self.create_prompt(
+            kwargs.get("template", None), 
+            input_variables=kwargs.get("input_variables", None), 
+            default_template_name=kwargs.get("default_template_name", "CHATBOT_CONVERSATION_TEMPLATE"))
 
         # create ConversationChain
         self.chain = ConversationChain(
@@ -129,10 +130,11 @@ class RetrievalQAUtilizer(BaseChain):
         assert retriever
             
         # create rag prompt
-        template = kwargs.get("template", None)
-        input_variables = kwargs.get("input_variables", None)             
         rag_prompt = prompt or \
-            self.create_prompt(template, input_variables=input_variables, default_template_name="CHATBOT_RAG_TEMPLATE_LLAMA") or \
+            self.create_prompt(
+                kwargs.get("template", None), 
+                input_variables=kwargs.get("input_variables", None)  , 
+                default_template_name=kwargs.get("default_template_name", "CHATBOT_RAG_TEMPLATE_LLAMA")) or \
             self.__create_prompt()
 
         chain_type_kwargs = {"prompt": rag_prompt}
@@ -180,10 +182,11 @@ class RetrievalQAUtilizer(BaseChain):
         assert retriever
 
         # create rag prompt
-        template = kwargs.get("template", None)
-        input_variables = kwargs.get("input_variables", None)           
         prompt = prompt or \
-            self.create_prompt(template, input_variables=input_variables, default_template_name="CHATBOT_RAG_TEMPLATE_LLAMA") or \
+            self.create_prompt(
+                kwargs.get("template", None), 
+                input_variables=kwargs.get("input_variables", None), 
+                default_template_name=kwargs.get("default_template_name", "CHATBOT_RAG_TEMPLATE_LLAMA")) or \
             self.__create_prompt()
 
         question_answer_chain = create_stuff_documents_chain(self.llm, prompt)
@@ -410,8 +413,9 @@ if __name__ == "__main__":
     from langchain_community.llms import Ollama
     from langchain_community.embeddings import HuggingFaceEmbeddings
     from chingmanlib.llm.db import create_data_pipeline
-    client = Ollama(model="EntropyYue/chatglm3:6b")
-    retriever = create_data_pipeline("/home/aurora/repos/dl-ex/llm/data/", HuggingFaceEmbeddings(model_name='jinaai/jina-embeddings-v2-base-zh'))
+    client = Ollama(model="THUDM/chatglm-6b")
+    retriever = create_data_pipeline("/home/aurora/repos/dl-ex/llm/data/", HuggingFaceEmbeddings(model_name='jinaai/jina-embeddings-v2-base-zh'))\
+        .retriever
 
     CHAIN_TYPE = "CONVERSATION_RETRIEVAL_QA"
     if "LLM_CHAIN" == CHAIN_TYPE:
